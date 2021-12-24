@@ -1,0 +1,59 @@
+---
+- hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+  - name: install packages
+    package:
+      name:
+        - htop
+        - tmux
+        - vim-nox
+
+  - name: copy wallpaper file
+    copy:
+      src: files/wallpaper.png
+      dest: /usr/share/backgrounds/ansible-wallpaper.png
+      owner: root
+      group: root
+
+  - name: set wallpaper
+    become_user: kujoadmin
+    dconf:
+      key: "/org/gnome/desktop/background/picture-uri"
+      value: "'file:///usr/share/backgrounds/ansible-wallpaper.png'"
+
+  - name: set wallpaper position
+    become_user: kujoadmin
+    dconf:
+      key: "/org/gnome/desktop/background/picture-options"
+      value: "'zoom'"
+
+  - name: copy .bashrc file
+    copy:
+     src: files/bashrc
+     dest: /home/kujoadmin/.bashrc
+     owner: kujoadmin
+     group: root
+
+  - name: add ansible user
+    user:
+      name: kujoadmin
+      system: yes
+
+  - name: set up sudo for ansible user
+    copy:
+      src: files/sudoer_kujoadmin
+      dest: /etc/sudoers.d/kujoadmin
+      owner: kujoadmin
+      group: root
+      mode: 0440
+
+  - name: add ansible-pull cron job
+    cron:
+      name: ansible auto-provision
+      user: kujoadmin
+      minute: "*/10"
+      job: ansible-pull -o -U https://github.com/lcarrejo/ansible_desktop.git
+      
